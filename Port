@@ -3,6 +3,20 @@ import socket
 import time
 import ipaddress
 import sys
+from functools import wraps
+
+def check_ports(function):
+	@wraps(function)
+	def check(*args):
+		if ":" in function(*args):
+			splt_func = function(*args).split(":")
+			first_num = int(splt_func[0])
+			second_num = int(splt_func[1])
+			if first_num < 0 or first_num > 65535 or second_num < 0 or second_num > 65535:
+				print("Numbers too high, please try again")
+				exit()
+		return function(*args)
+	return check
 
 class Colors:
 
@@ -28,7 +42,7 @@ class Parser(Colors):
 
 		self.args = argparse.ArgumentParser(description="Port scanner")
 		self.args.add_argument("--ip", help="Ip you want to scan", type=self.check_valid_ip)
-		self.args.add_argument("--port", help="Port you want to scan on")
+		self.args.add_argument("--port", help="Port you want to scan on", type=self.check_port)
 
 		self.args_parsed = self.args.parse_args()
 
@@ -44,12 +58,10 @@ class Parser(Colors):
 			raise argparse.ArgumentError(msg)
 		return ip
 
+	@check_ports
 	def check_port(self, port):
-		port = int(port)
-		if port > 65535 or port < 0:
-			msg = "[-] Invalid Port number"
-			raise argparse.ArgumentError(msg)
 		return port
+
 
 class ScanPort(Parser):
 	def __init__(self):
@@ -88,14 +100,14 @@ class ScanPort(Parser):
 						print(Colors.bright_blue("-" * 20))
 						break
 				else:
-					print(Colors.red_color(f"[-] {str(port_nums)}: Unknown"))
+					print(Colors.red_color(f"[-] {str(port_nums)}: \tUnknown"))
 		print(Colors.white_color(f"\nTotal number of ports open: {str(count)}"))
 
 	def begin_port_scan(self):
 		port = self.get_port()
-
-		if "-" in port:
-			port = port.split("-")
+		print(port)
+		if ":" in port:
+			port = port.split(":")
 			first_num = int(port[0]) + 1
 			second_num = int(port[1]) + 1
 			self.port_scan(first_num, second_num)
