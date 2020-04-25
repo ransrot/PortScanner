@@ -1,0 +1,113 @@
+import argparse
+import socket
+import time
+import ipaddress
+import sys
+
+class Colors:
+
+	@staticmethod
+	def red_color(color):
+		return "\033[1;31;10m" + color
+
+	@staticmethod
+	def bright_blue(color):
+		return "\033[1;34;10m" + color
+
+	@staticmethod
+	def green_color(color):
+		return "\033[1;32;10m" + color
+
+	@staticmethod
+	def white_color(color):
+		return "\033[1;37;10m" + color
+
+class Parser(Colors):
+	def __init__(self):
+		super().__init__()
+
+		self.args = argparse.ArgumentParser(description="Port scanner")
+		self.args.add_argument("--ip", help="Ip you want to scan", type=self.check_valid_ip)
+		self.args.add_argument("--port", help="Port you want to scan on")
+
+		self.args_parsed = self.args.parse_args()
+
+	def get_ip(self):
+		return self.args_parsed.ip
+
+	def get_port(self):
+		return self.args_parsed.port
+
+	def check_valid_ip(self, ip):
+		if not ipaddress.ip_address(ip):
+			msg = "[-] Invalid IP"
+			raise argparse.ArgumentError(msg)
+		return ip
+
+	def check_port(self, port):
+		port = int(port)
+		if port > 65535 or port < 0:
+			msg = "[-] Invalid Port number"
+			raise argparse.ArgumentError(msg)
+		return port
+
+class ScanPort(Parser):
+	def __init__(self):
+		super().__init__()
+
+	def type_of_ports(self):
+		return {
+			"FTP": 21,
+			"SSH": 22,
+			"TELNET": 23,
+			"SMTP": 25,
+			"DNS": 53,
+			"HTTP": 80,
+			"HTTPS": 443
+		}
+
+	def port_scan(self, *args):
+		port_names = self.type_of_ports()
+		ip_address = self.get_ip()
+		count = 0
+
+		print(Colors.bright_blue("Ports open\tNames"))
+		print("-" * 22)
+		for port_nums in range(*args):
+			sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+			socket_result = sock.connect_ex((ip_address, port_nums))
+			
+			if socket_result == 0:
+				count += 1
+				
+				for key, value in port_names.items():
+					if port_nums == value:
+						port = f"{str(port_nums)} -->"
+						names = f"{key}"
+						print(Colors.green_color(port), " \t", Colors.white_color(names))
+						print(Colors.bright_blue("-" * 20))
+						break
+				else:
+					print(Colors.red_color(f"[-] {str(port_nums)}: Unknown"))
+		print(Colors.white_color(f"\nTotal number of ports open: {str(count)}"))
+
+	def begin_port_scan(self):
+		port = self.get_port()
+
+		if "-" in port:
+			port = port.split("-")
+			first_num = int(port[0]) + 1
+			second_num = int(port[1]) + 1
+			self.port_scan(first_num, second_num)
+		else:
+			port = int(port) + 1
+			self.port_scan(port)
+
+
+if __name__ == '__main__':
+	try:
+		argument = sys.argv[1:]
+		if "--ip" in argument and "--port" in argument:
+			ScanPort().begin_port_scan()
+	except IndexError:
+		print("Invalid argument.")
