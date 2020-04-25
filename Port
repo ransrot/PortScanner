@@ -13,7 +13,13 @@ def check_ports(function):
 			first_num = int(splt_func[0])
 			second_num = int(splt_func[1])
 			if first_num < 0 or first_num > 65535 or second_num < 0 or second_num > 65535:
-				print("Numbers too high, please try again")
+				print("Numbers too high, please try again.")
+				exit()
+		if ":" not in function(*args):
+			num = function(*args)
+			num = int(num)
+			if num > 65535 or num < 0:
+				print("Numbers too high, please try again.")
 				exit()
 		return function(*args)
 	return check
@@ -105,7 +111,6 @@ class ScanPort(Parser):
 
 	def begin_port_scan(self):
 		port = self.get_port()
-		print(port)
 		if ":" in port:
 			port = port.split(":")
 			first_num = int(port[0]) + 1
